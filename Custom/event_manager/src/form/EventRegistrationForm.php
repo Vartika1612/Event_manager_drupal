@@ -4,182 +4,228 @@ namespace Drupal\event_manager\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\event_manager\Service\EventService;
-use Drupal\event_manager\Service\MailService;
 use Drupal\Core\Database\Connection;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class EventRegistrationForm extends FormBase {
 
-  protected EventService $eventService;
-  protected MailService $mailService;
-  protected Connection $db;
+  protected Connection $database;
 
-  public function __construct(
-    EventService $eventService,
-    MailService $mailService,
-    Connection $db
-  ) {
-    $this->eventService = $eventService;
-    $this->mailService = $mailService;
-    $this->db = $db;
+  public function __construct(Connection $database) {
+    $this->database = $database;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('event_manager.event_service'),
-      $container->get('event_manager.mail_service'),
       $container->get('database')
     );
   }
 
   public function getFormId() {
-    return 'event_registration_form';
+    return 'event_manager_event_registration_form';
   }
 
   public function buildForm(array $form, FormStateInterface $form_state) {
 
-    $categories = array_combine(
-      $this->eventService->getCategories(),
-      $this->eventService->getCategories()
-    );
+    /* ---------------- User details ---------------- */
 
     $form['full_name'] = [
       '#type' => 'textfield',
-      '#title' => 'Full Name',
+      '#title' => $this->t('Full Name'),
       '#required' => TRUE,
     ];
 
     $form['email'] = [
       '#type' => 'email',
-      '#title' => 'Email Address',
+      '#title' => $this->t('Email Address'),
       '#required' => TRUE,
     ];
 
-    $form['college'] = [
+    $form['college_name'] = [
       '#type' => 'textfield',
-      '#title' => 'College Name',
+      '#title' => $this->t('College Name'),
       '#required' => TRUE,
     ];
 
     $form['department'] = [
       '#type' => 'textfield',
-      '#title' => 'Department',
+      '#title' => $this->t('Department'),
       '#required' => TRUE,
     ];
+
+    /* ---------------- Event selection ---------------- */
+
+    // Category dropdown
+    $categories = $this->database->select('event_config', 'e')
+      ->fields('e', ['category'])
+      ->distinct()
+      ->execute()
+      ->fetchCol();
+
+    $category_options = ['' => $this->t('- Select -')];
+    foreach ($categories as $category) {
+      $category_options[$category] = $category;
+    }
 
     $form['category'] = [
-      '#type' => 'select',
-      '#title' => 'Category',
-      '#options' => ['' => '- Select -'] + $categories,
-      '#ajax' => [
-        'callback' => '::updateDates',
-        'wrapper' => 'date-wrapper',
-      ],
-      '#required' => TRUE,
-    ];
+  '#type' => 'select',
+  '#title' => $this->t('Category'),
+  '#options' => $category_options,
+  '#required' => TRUE,
+  '#ajax' => [
+    'callback' => '::updateEventDates',
+    'wrapper' => 'event-date-wrapper',
+    'event' => 'change',
+  ],
+];
 
+
+    // Event date dropdown (AJAX)
     $form['event_date_wrapper'] = [
       '#type' => 'container',
-      '#attributes' => ['id' => 'date-wrapper'],
+      '#attributes' => ['id' => 'event-date-wrapper'],
     ];
 
-    $selected_category = $form_state->getValue('category');
-    $dates = [];
+   $form['event_date_wrapper']['event_date'] = [
+  '#type' => 'select',
+  '#title' => $this->t('Event Date'),
+  '#options' => $this->getEventDates($form_state->getValue('category')),
+  '#empty_option' => $this->t('- Select -'),
+  '#required' => TRUE,
+  '#ajax' => [
+    'callback' => '::updateEventNames',
+    'wrapper' => 'event-name-wrapper',
+    'event' => 'change',
+  ],
+];
 
-    if ($selected_category) {
-      $date_values = $this->eventService->getDates($selected_category);
-      foreach ($date_values as $date) {
-        $dates[$date] = $date;
-      }
-    }
 
-    $form['event_date_wrapper']['event_date'] = [
-      '#type' => 'select',
-      '#title' => 'Event Date',
-      '#options' => ['' => '- Select -'] + $dates,
-      '#ajax' => [
-        'callback' => '::updateEvents',
-        'wrapper' => 'event-wrapper',
-      ],
-      '#required' => TRUE,
-    ];
-
-    $form['event_wrapper'] = [
+    // Event name dropdown (AJAX)
+    $form['event_name_wrapper'] = [
       '#type' => 'container',
-      '#attributes' => ['id' => 'event-wrapper'],
+      '#attributes' => ['id' => 'event-name-wrapper'],
     ];
 
-    $events = [];
-    $selected_date = $form_state->getValue('event_date');
-
-    if ($selected_category && $selected_date) {
-      $event_rows = $this->eventService->getEvents($selected_category, $selected_date);
-      foreach ($event_rows as $event) {
-        $events[$event->id] = $event->event_name;
-      }
-    }
-
-    $form['event_wrapper']['event_id'] = [
+    $form['event_name_wrapper']['event_id'] = [
       '#type' => 'select',
-      '#title' => 'Event Name',
-      '#options' => ['' => '- Select -'] + $events,
+      '#title' => $this->t('Event Name'),
+      '#options' => $this->getEventNames(
+        $form_state->getValue('category'),
+        $form_state->getValue('event_date')
+      ),
       '#required' => TRUE,
     ];
+
+    /* ---------------- Submit ---------------- */
 
     $form['submit'] = [
       '#type' => 'submit',
-      '#value' => 'Register',
+      '#value' => $this->t('Register'),
     ];
 
     return $form;
   }
 
-  public function updateDates(array &$form, FormStateInterface $form_state) {
-    return $form['event_date_wrapper'];
+  /* ---------------- AJAX callbacks ---------------- */
+
+ public function updateEventDates(array &$form, FormStateInterface $form_state) {
+  $form_state->setRebuild(TRUE);
+  return $form['event_date_wrapper'];
+}
+
+public function updateEventNames(array &$form, FormStateInterface $form_state) {
+  $form_state->setRebuild(TRUE);
+  return $form['event_name_wrapper'];
+}
+
+
+  /* ---------------- Helper functions ---------------- */
+
+private function getEventDates($category) {
+  if (empty($category)) {
+    return ['' => $this->t('- Select category first -')];
   }
 
-  public function updateEvents(array &$form, FormStateInterface $form_state) {
-    return $form['event_wrapper'];
+  $today = date('Y-m-d');
+
+  $query = $this->database->select('event_config', 'e')
+    ->fields('e', ['event_date'])
+    ->condition('category', $category)
+    ->condition('reg_start_date', $today, '<=')
+    ->condition('reg_end_date', $today, '>=')
+    ->distinct()
+    ->execute()
+    ->fetchCol();
+
+  $options = ['' => $this->t('- Select -')];
+  foreach ($query as $date) {
+    $options[$date] = $date;
   }
+
+  return $options;
+}
+
+
+  /* ---------------- Validation ---------------- */
 
   public function validateForm(array &$form, FormStateInterface $form_state) {
+    // Prevent duplicate registration
+    $exists = $this->database->select('event_registration', 'r')
+      ->fields('r', ['id'])
+      ->condition('email', $form_state->getValue('email'))
+      ->condition('event_date', $form_state->getValue('event_date'))
+      ->execute()
+      ->fetchField();
 
-    $text_fields = ['full_name', 'college', 'department'];
-
-    foreach ($text_fields as $field) {
-      if (!preg_match('/^[a-zA-Z\s]+$/', $form_state->getValue($field))) {
-        $form_state->setErrorByName($field, 'Special characters are not allowed.');
-      }
-    }
-
-    if (!filter_var($form_state->getValue('email'), FILTER_VALIDATE_EMAIL)) {
-      $form_state->setErrorByName('email', 'Invalid email format.');
-    }
-
-    if ($this->eventService->isDuplicate(
-      $form_state->getValue('email'),
-      $form_state->getValue('event_id')
-    )) {
-      $form_state->setErrorByName('email', 'You are already registered for this event.');
+    if ($exists) {
+      $form_state->setErrorByName(
+        'email',
+        $this->t('You have already registered for this event.')
+      );
     }
   }
+
+  /* ---------------- Submit ---------------- */
 
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    $this->database->insert('event_registration')
+      ->fields([
+        'full_name' => $form_state->getValue('full_name'),
+        'email' => $form_state->getValue('email'),
+        'college_name' => $form_state->getValue('college_name'),
+        'department' => $form_state->getValue('department'),
+        'category' => $form_state->getValue('category'),
+        'event_date' => $form_state->getValue('event_date'),
+        'event_id' => $form_state->getValue('event_id'),
+        'created' => time(),
+      ])
+      ->execute();
 
-    $this->db->insert('event_registration')->fields([
-      'full_name' => $form_state->getValue('full_name'),
-      'email' => $form_state->getValue('email'),
-      'college' => $form_state->getValue('college'),
-      'department' => $form_state->getValue('department'),
-      'event_id' => $form_state->getValue('event_id'),
-      'created' => time(),
-    ])->execute();
-
-    $params['body'] = "Thank you {$form_state->getValue('full_name')} for registering.";
-
-    $this->mailService->send($form_state->getValue('email'), $params);
-
-    $this->messenger()->addMessage('Registration successful.');
+    $this->messenger()->addStatus(
+      $this->t('You have successfully registered for the event.')
+    );
   }
+  private function getEventNames($category, $event_date) {
+  if (empty($category) || empty($event_date)) {
+    return ['' => $this->t('- Select date first -')];
+  }
+
+  $today = date('Y-m-d');
+
+  $query = $this->database->select('event_config', 'e')
+    ->fields('e', ['id', 'event_name'])
+    ->condition('category', $category)
+    ->condition('event_date', $event_date)
+    ->condition('reg_start_date', $today, '<=')
+    ->condition('reg_end_date', $today, '>=')
+    ->execute();
+
+  $options = ['' => $this->t('- Select -')];
+  foreach ($query as $event) {
+    $options[$event->id] = $event->event_name;
+  }
+
+  return $options;
+}
+
 }

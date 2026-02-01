@@ -6,13 +6,13 @@ event_manager.event_config:
   requirements:
     _permission: 'administer site configuration'
 
-event_manager.register:
-  path: '/event-register'
+event_manager.event_register:
+  path: '/event/register'
   defaults:
     _form: '\Drupal\event_manager\Form\EventRegistrationForm'
     _title: 'Event Registration'
   requirements:
-    _access: 'TRUE'
+    _permission: 'access content'
 
 event_manager.settings:
   path: '/admin/event-settings'
