@@ -30,18 +30,18 @@ event_manager.event_list:
   requirements:
     _permission: 'administer site configuration'
 
-event_registration.event_edit:
+event_manager.event_edit:
   path: '/admin/events/{id}/edit'
   defaults:
-    _form: '\Drupal\event_registration\Form\EventEditForm'
+    _form: '\Drupal\event_manager\Form\EventEditForm'
     _title: 'Edit Event'
   requirements:
     _permission: 'administer site configuration'
 
-event_registration.event_delete:
+event_manager.event_delete:
   path: '/admin/events/{id}/delete'
   defaults:
-    _form: '\Drupal\event_registration\Form\EventDeleteForm'
+    _form: '\Drupal\event_manager\Form\EventDeleteForm'
     _title: 'Delete Event'
   requirements:
     _permission: 'administer site configuration'

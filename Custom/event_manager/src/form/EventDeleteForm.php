@@ -11,18 +11,20 @@ use Drupal\Core\Url;
 class EventDeleteForm extends ConfirmFormBase {
 
   protected Connection $database;
-  protected int $eventId;
+  protected $eventId;
 
   public function __construct(Connection $database) {
     $this->database = $database;
   }
 
   public static function create(ContainerInterface $container) {
-    return new static($container->get('database'));
+    return new static(
+      $container->get('database')
+    );
   }
 
   public function getFormId() {
-    return 'event_delete_form';
+    return 'event_manager_delete_form';
   }
 
   public function getQuestion() {
@@ -30,7 +32,7 @@ class EventDeleteForm extends ConfirmFormBase {
   }
 
   public function getCancelUrl() {
-    return new Url('event_registration.event_list');
+    return new Url('event_manager.event_list');
   }
 
   public function getConfirmText() {
@@ -48,6 +50,6 @@ class EventDeleteForm extends ConfirmFormBase {
       ->execute();
 
     $this->messenger()->addStatus($this->t('Event deleted successfully.'));
-    $form_state->setRedirect('event_registration.event_list');
+    $form_state->setRedirect('event_manager.event_list');
   }
 }
