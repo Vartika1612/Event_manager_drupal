@@ -1,0 +1,8 @@
+services:
+  event_manager.event_service:
+    class: Drupal\event_manager\Service\EventService
+    arguments: ['@database']
+
+  event_manager.mail_service:
+    class: Drupal\event_manager\Service\MailService
+    arguments: ['@plugin.manager.mail', '@config.factory']

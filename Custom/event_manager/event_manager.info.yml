@@ -1,0 +1,5 @@
+name: Event Manager
+type: module
+description: Custom event registration system.
+package: Custom
+core_version_requirement: ^10
