@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\event_manager\Form;
+namespace Drupal\event_registration\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -8,26 +8,28 @@ use Drupal\Core\Database\Connection;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Event configuration form.
+ * Event Configuration Form (Create Event).
  */
 class EventConfigForm extends FormBase {
 
   /**
    * Database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
    */
-  protected Connection $db;
+  protected Connection $database;
 
   /**
-   * Constructor.
+   * Constructs the form.
    */
-  public function __construct(Connection $db) {
-    $this->db = $db;
+  public function __construct(Connection $database) {
+    $this->database = $database;
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container): static {
+  public static function create(ContainerInterface $container) {
     return new static(
       $container->get('database')
     );
@@ -36,31 +38,33 @@ class EventConfigForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormId(): string {
-    return 'event_config_form';
+  public function getFormId() {
+    return 'event_registration_config_form';
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state): array {
+  public function buildForm(array $form, FormStateInterface $form_state) {
 
     $form['event_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Event Name'),
       '#required' => TRUE,
+      '#maxlength' => 255,
     ];
 
     $form['category'] = [
       '#type' => 'select',
       '#title' => $this->t('Category'),
-      '#options' => [
-        'Online Workshop' => 'Online Workshop',
-        'Hackathon' => 'Hackathon',
-        'Conference' => 'Conference',
-        'One-day Workshop' => 'One-day Workshop',
-      ],
       '#required' => TRUE,
+      '#options' => [
+        '' => $this->t('- Select -'),
+        'Online Workshop' => $this->t('Online Workshop'),
+        'Hackathon' => $this->t('Hackathon'),
+        'Conference' => $this->t('Conference'),
+        'One-day Workshop' => $this->t('One-day Workshop'),
+      ],
     ];
 
     $form['event_date'] = [
@@ -69,13 +73,13 @@ class EventConfigForm extends FormBase {
       '#required' => TRUE,
     ];
 
-    $form['reg_start'] = [
+    $form['reg_start_date'] = [
       '#type' => 'date',
       '#title' => $this->t('Registration Start Date'),
       '#required' => TRUE,
     ];
 
-    $form['reg_end'] = [
+    $form['reg_end_date'] = [
       '#type' => 'date',
       '#title' => $this->t('Registration End Date'),
       '#required' => TRUE,
@@ -84,6 +88,7 @@ class EventConfigForm extends FormBase {
     $form['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save Event'),
+      '#button_type' => 'primary',
     ];
 
     return $form;
@@ -92,21 +97,60 @@ class EventConfigForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state): void {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
 
-    $this->db->insert('event_config')
+    $event_name = $form_state->getValue('event_name');
+
+    // Prevent special characters in Event Name.
+    if (!preg_match('/^[a-zA-Z0-9\s]+$/', $event_name)) {
+      $form_state->setErrorByName(
+        'event_name',
+        $this->t('Special characters are not allowed in Event Name.')
+      );
+    }
+
+    $event_date = strtotime($form_state->getValue('event_date'));
+    $start_date = strtotime($form_state->getValue('reg_start_date'));
+    $end_date = strtotime($form_state->getValue('reg_end_date'));
+
+    // Registration start date must be before end date.
+    if ($start_date > $end_date) {
+      $form_state->setErrorByName(
+        'reg_end_date',
+        $this->t('Registration end date must be after start date.')
+      );
+    }
+
+    // Event date must be after registration end date.
+    if ($event_date < $end_date) {
+      $form_state->setErrorByName(
+        'event_date',
+        $this->t('Event date must be after registration end date.')
+      );
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+
+    $this->database->insert('event_config')
       ->fields([
         'event_name' => $form_state->getValue('event_name'),
         'category' => $form_state->getValue('category'),
         'event_date' => $form_state->getValue('event_date'),
-        'reg_start' => $form_state->getValue('reg_start'),
-        'reg_end' => $form_state->getValue('reg_end'),
+        'reg_start_date' => $form_state->getValue('reg_start_date'),
+        'reg_end_date' => $form_state->getValue('reg_end_date'),
+        'created' => \Drupal::time()->getRequestTime(),
       ])
       ->execute();
 
     $this->messenger()->addStatus(
-      $this->t('Event saved successfully.')
+      $this->t('Event configuration saved successfully.')
     );
+
+    $form_state->setRedirect('<current>');
   }
 
 }
