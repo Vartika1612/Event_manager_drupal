@@ -20,46 +20,39 @@ class EventListController extends ControllerBase {
     );
   }
 
+  /**
+   * List all events.
+   */
   public function list() {
     $header = [
       'event_name' => $this->t('Event Name'),
       'category' => $this->t('Category'),
       'event_date' => $this->t('Event Date'),
-      'operations' => $this->t('Operations'),
+      'reg_start_date' => $this->t('Registration Start'),
+      'reg_end_date' => $this->t('Registration End'),
     ];
 
     $rows = [];
 
-    $results = $this->database->select('event_config', 'e')
-      ->fields('e')
-      ->execute();
+    $query = $this->database->select('event_config', 'e')
+      ->fields('e', [
+        'event_name',
+        'category',
+        'event_date',
+        'reg_start_date',
+        'reg_end_date',
+      ])
+      ->orderBy('event_date', 'DESC');
 
-    foreach ($results as $row) {
+    $result = $query->execute();
+
+    foreach ($result as $record) {
       $rows[] = [
-        'event_name' => $row->event_name,
-        'category' => $row->category,
-        'event_date' => $row->event_date,
-        'operations' => [
-          'data' => [
-            '#type' => 'operations',
-            '#links' => [
-              'edit' => [
-                'title' => $this->t('Edit'),
-                'url' => \Drupal\Core\Url::fromRoute(
-                  'event_registration.event_edit',
-                  ['id' => $row->id]
-                ),
-              ],
-              'delete' => [
-                'title' => $this->t('Delete'),
-                'url' => \Drupal\Core\Url::fromRoute(
-                  'event_registration.event_delete',
-                  ['id' => $row->id]
-                ),
-              ],
-            ],
-          ],
-        ],
+        'event_name' => $record->event_name,
+        'category' => $record->category,
+        'event_date' => $record->event_date,
+        'reg_start_date' => $record->reg_start_date,
+        'reg_end_date' => $record->reg_end_date,
       ];
     }
 
@@ -70,4 +63,5 @@ class EventListController extends ControllerBase {
       '#empty' => $this->t('No events found.'),
     ];
   }
+
 }

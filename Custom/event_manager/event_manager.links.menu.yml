@@ -1,0 +1,6 @@
+event_manager.event_list:
+  title: 'Events List'
+  description: 'View all configured events'
+  parent: system.admin_content
+  route_name: event_manager.event_list
+  weight: 5
