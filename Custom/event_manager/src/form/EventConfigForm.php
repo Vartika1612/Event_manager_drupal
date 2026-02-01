@@ -1,11 +1,12 @@
 <?php
 
-namespace Drupal\event_registration\Form;
+namespace Drupal\event_manager\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Database\Connection;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+
 
 /**
  * Event Configuration Form (Create Event).
@@ -142,7 +143,7 @@ class EventConfigForm extends FormBase {
         'event_date' => $form_state->getValue('event_date'),
         'reg_start_date' => $form_state->getValue('reg_start_date'),
         'reg_end_date' => $form_state->getValue('reg_end_date'),
-        'created' => \Drupal::time()->getRequestTime(),
+
       ])
       ->execute();
 

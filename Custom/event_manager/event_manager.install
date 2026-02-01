@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for Event Manager module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function event_manager_schema() {
+  $schema['event_config'] = [
+    'description' => 'Stores event configuration details.',
+    'fields' => [
+      'id' => [
+        'description' => 'Primary Key: Event ID.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_name' => [
+        'description' => 'Event name.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'category' => [
+        'description' => 'Event category.',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ],
+      'event_date' => [
+        'description' => 'Event date.',
+        'type' => 'date',
+        'not null' => TRUE,
+      ],
+      'reg_start_date' => [
+        'description' => 'Registration start date.',
+        'type' => 'date',
+        'not null' => TRUE,
+      ],
+      'reg_end_date' => [
+        'description' => 'Registration end date.',
+        'type' => 'date',
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'description' => 'Created timestamp.',
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Add missing columns to event_config table.
+ */
+function event_manager_update_9001() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->fieldExists('event_config', 'reg_start_date')) {
+    $schema->addField('event_config', 'reg_start_date', [
+      'type' => 'date',
+      'not null' => TRUE,
+    ]);
+  }
+
+  if (!$schema->fieldExists('event_config', 'reg_end_date')) {
+    $schema->addField('event_config', 'reg_end_date', [
+      'type' => 'date',
+      'not null' => TRUE,
+    ]);
+  }
+
+  if (!$schema->fieldExists('event_config', 'created')) {
+    $schema->addField('event_config', 'created', [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => \Drupal::time()->getRequestTime(),
+    ]);
+  }
+}

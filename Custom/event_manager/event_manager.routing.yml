@@ -1,7 +1,7 @@
-event_manager.config:
+event_manager.event_config:
   path: '/admin/event-config'
   defaults:
-    _controller: '\Drupal\event_manager\Controller\EventManagerController::eventConfigPage'
+    _form: '\Drupal\event_manager\Form\EventConfigForm'
     _title: 'Event Configuration'
   requirements:
     _permission: 'administer site configuration'
@@ -22,10 +22,10 @@ event_manager.settings:
   requirements:
     _permission: 'administer site configuration'
 
-event_registration.event_list:
+event_manager.event_list:
   path: '/admin/events'
   defaults:
-    _controller: '\Drupal\event_registration\Controller\EventListController::list'
+    _controller: '\Drupal\event_manager\Controller\EventListController::list'
     _title: 'Events List'
   requirements:
     _permission: 'administer site configuration'
@@ -37,7 +37,7 @@ event_registration.event_edit:
     _title: 'Edit Event'
   requirements:
     _permission: 'administer site configuration'
-    
+
 event_registration.event_delete:
   path: '/admin/events/{id}/delete'
   defaults:

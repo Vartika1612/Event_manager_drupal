@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\event_registration\Form;
+namespace Drupal\event_manager\Form;
 
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;

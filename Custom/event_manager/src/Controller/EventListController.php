@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\event_registration\Controller;
+namespace Drupal\event_manager\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
