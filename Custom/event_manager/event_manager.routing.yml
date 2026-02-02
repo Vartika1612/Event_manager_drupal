@@ -46,4 +46,20 @@ event_manager.event_delete:
   requirements:
     _permission: 'administer site configuration'
 
+event_manager.registration_list:
+  path: '/admin/event-registrations'
+  defaults:
+    _controller: '\Drupal\event_manager\Controller\EventRegistrationListController::list'
+    _title: 'Event Registrations'
+  requirements:
+    _permission: 'view event registrations'
+
+event_manager.registration_export:
+  path: '/admin/event-registrations/export'
+  defaults:
+    _controller: '\Drupal\event_manager\Controller\EventRegistrationListController::export'
+  requirements:
+    _permission: 'view event registrations'
+
+
 
