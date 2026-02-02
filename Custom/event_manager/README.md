@@ -54,7 +54,7 @@ http://localhost/drupal/drupal-10.0.0/admin/event-registrations
 #### Event Registration Form
 Used by users to register for available events.
 
-http://localhost/drupal/drupal-10.0.0/event-registration
+http://localhost/drupal/drupal-10.0.0/event/register
 
 ---
 
