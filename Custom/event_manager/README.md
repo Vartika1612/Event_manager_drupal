@@ -40,7 +40,7 @@ http://localhost/drupal/drupal-10.0.0/admin/event-config
 #### Event Manager Settings Page
 Used to configure admin email notifications.
 
-http://localhost/drupal/drupal-10.0.0/event/admin/config/event-manager/settings
+http://localhost/drupal/drupal-10.0.0/admin/config/event-manager/settings
 
 #### Event Registration Listing & CSV Export
 Used to view registrations, filter data, and export CSV.
