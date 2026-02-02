@@ -23,7 +23,7 @@ The module allows administrators to configure events and users to register for t
 ## Module Location
 
 The custom module is located at:
-
+modules/custom/event_manager
 
 ---
 
@@ -35,7 +35,7 @@ For complete documentation including:
 - Database table explanation
 - Validation and email logic
 
-Please refer to:
+Please refer to: https://github.com/Vartika1612/Event_manager_drupal/blob/main/Custom/event_manager/README.md
 
 ---
 
