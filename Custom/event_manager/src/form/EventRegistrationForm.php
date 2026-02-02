@@ -27,7 +27,7 @@ class EventRegistrationForm extends FormBase {
 
   public function buildForm(array $form, FormStateInterface $form_state) {
 
-    /* ---------------- User details ---------------- */
+    /* ---------- User details ---------- */
 
     $form['full_name'] = [
       '#type' => 'textfield',
@@ -53,70 +53,62 @@ class EventRegistrationForm extends FormBase {
       '#required' => TRUE,
     ];
 
-    /* ---------------- Event selection ---------------- */
+    /* ---------- Category ---------- */
 
-    // Category dropdown
     $categories = $this->database->select('event_config', 'e')
       ->fields('e', ['category'])
       ->distinct()
       ->execute()
       ->fetchCol();
 
-    $category_options = ['' => $this->t('- Select -')];
+    $options = ['' => $this->t('- Select -')];
     foreach ($categories as $category) {
-      $category_options[$category] = $category;
+      $options[$category] = $category;
     }
 
     $form['category'] = [
-  '#type' => 'select',
-  '#title' => $this->t('Category'),
-  '#options' => $category_options,
-  '#required' => TRUE,
-  '#ajax' => [
-    'callback' => '::updateEventDates',
-    'wrapper' => 'event-date-wrapper',
-    'event' => 'change',
-  ],
-];
-
-
-    // Event date dropdown (AJAX)
-    $form['event_date_wrapper'] = [
-      '#type' => 'container',
-      '#attributes' => ['id' => 'event-date-wrapper'],
+      '#type' => 'select',
+      '#title' => $this->t('Category'),
+      '#options' => $options,
+      '#required' => TRUE,
+      '#ajax' => [
+        'callback' => '::updateEventDates',
+        'wrapper' => 'event-date-wrapper',
+      ],
     ];
 
-   $form['event_date_wrapper']['event_date'] = [
-  '#type' => 'select',
-  '#title' => $this->t('Event Date'),
-  '#options' => $this->getEventDates($form_state->getValue('category')),
-  '#empty_option' => $this->t('- Select -'),
-  '#required' => TRUE,
-  '#ajax' => [
-    'callback' => '::updateEventNames',
-    'wrapper' => 'event-name-wrapper',
-    'event' => 'change',
-  ],
-];
+    /* ---------- Event Date ---------- */
 
-
-    // Event name dropdown (AJAX)
-    $form['event_name_wrapper'] = [
-      '#type' => 'container',
-      '#attributes' => ['id' => 'event-name-wrapper'],
+    $form['event_date'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Event Date'),
+      '#options' => $this->getEventDates($form_state->getValue('category')),
+      '#empty_option' => $this->t('- Select -'),
+      '#required' => TRUE,
+      '#prefix' => '<div id="event-date-wrapper">',
+      '#suffix' => '</div>',
+      '#ajax' => [
+        'callback' => '::updateEventNames',
+        'wrapper' => 'event-name-wrapper',
+      ],
     ];
 
-    $form['event_name_wrapper']['event_id'] = [
+    /* ---------- Event Name ---------- */
+
+    $form['event_id'] = [
       '#type' => 'select',
       '#title' => $this->t('Event Name'),
       '#options' => $this->getEventNames(
         $form_state->getValue('category'),
         $form_state->getValue('event_date')
       ),
+      '#empty_option' => $this->t('- Select -'),
       '#required' => TRUE,
+      '#prefix' => '<div id="event-name-wrapper">',
+      '#suffix' => '</div>',
     ];
 
-    /* ---------------- Submit ---------------- */
+    /* ---------- Submit ---------- */
 
     $form['submit'] = [
       '#type' => 'submit',
@@ -126,66 +118,77 @@ class EventRegistrationForm extends FormBase {
     return $form;
   }
 
-  /* ---------------- AJAX callbacks ---------------- */
+  /* ---------- AJAX callbacks ---------- */
 
- public function updateEventDates(array &$form, FormStateInterface $form_state) {
-  $form_state->setRebuild(TRUE);
-  return $form['event_date_wrapper'];
-}
-
-public function updateEventNames(array &$form, FormStateInterface $form_state) {
-  $form_state->setRebuild(TRUE);
-  return $form['event_name_wrapper'];
-}
-
-
-  /* ---------------- Helper functions ---------------- */
-
-private function getEventDates($category) {
-  if (empty($category)) {
-    return ['' => $this->t('- Select category first -')];
+  public function updateEventDates(array &$form, FormStateInterface $form_state) {
+    $form_state->setRebuild(TRUE);
+    return $form['event_date'];
   }
 
-  $today = date('Y-m-d');
-
-  $query = $this->database->select('event_config', 'e')
-    ->fields('e', ['event_date'])
-    ->condition('category', $category)
-    ->condition('reg_start_date', $today, '<=')
-    ->condition('reg_end_date', $today, '>=')
-    ->distinct()
-    ->execute()
-    ->fetchCol();
-
-  $options = ['' => $this->t('- Select -')];
-  foreach ($query as $date) {
-    $options[$date] = $date;
+  public function updateEventNames(array &$form, FormStateInterface $form_state) {
+    $form_state->setRebuild(TRUE);
+    return $form['event_id'];
   }
 
-  return $options;
-}
+  /* ---------- Helpers ---------- */
 
+  private function getEventDates($category) {
+    if (empty($category)) {
+      return [];
+    }
 
-  /* ---------------- Validation ---------------- */
+    $today = date('Y-m-d');
+
+    return $this->database->select('event_config', 'e')
+      ->fields('e', ['event_date'])
+      ->condition('category', $category)
+      ->condition('reg_start_date', $today, '<=')
+      ->condition('reg_end_date', $today, '>=')
+      ->distinct()
+      ->execute()
+      ->fetchAllKeyed(0, 0);
+  }
+
+  private function getEventNames($category, $event_date) {
+    if (empty($category) || empty($event_date)) {
+      return [];
+    }
+
+    $today = date('Y-m-d');
+
+    $query = $this->database->select('event_config', 'e')
+      ->fields('e', ['id', 'event_name'])
+      ->condition('category', $category)
+      ->condition('event_date', $event_date)
+      ->condition('reg_start_date', $today, '<=')
+      ->condition('reg_end_date', $today, '>=')
+      ->execute();
+
+    $options = [];
+    foreach ($query as $row) {
+      $options[$row->id] = $row->event_name;
+    }
+    return $options;
+  }
+
+  /* ---------- Validation ---------- */
 
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    // Prevent duplicate registration
     $exists = $this->database->select('event_registration', 'r')
       ->fields('r', ['id'])
       ->condition('email', $form_state->getValue('email'))
-      ->condition('event_date', $form_state->getValue('event_date'))
+      ->condition('event_id', $form_state->getValue('event_id'))
       ->execute()
       ->fetchField();
 
     if ($exists) {
-      $form_state->setErrorByName(
-        'email',
+      $form_state->setErrorByName('email',
         $this->t('You have already registered for this event.')
       );
     }
   }
 
-  /* ---------------- Submit ---------------- */
+  /* ---------- Submit ---------- */
 
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->database->insert('event_registration')
@@ -205,27 +208,4 @@ private function getEventDates($category) {
       $this->t('You have successfully registered for the event.')
     );
   }
-  private function getEventNames($category, $event_date) {
-  if (empty($category) || empty($event_date)) {
-    return ['' => $this->t('- Select date first -')];
-  }
-
-  $today = date('Y-m-d');
-
-  $query = $this->database->select('event_config', 'e')
-    ->fields('e', ['id', 'event_name'])
-    ->condition('category', $category)
-    ->condition('event_date', $event_date)
-    ->condition('reg_start_date', $today, '<=')
-    ->condition('reg_end_date', $today, '>=')
-    ->execute();
-
-  $options = ['' => $this->t('- Select -')];
-  foreach ($query as $event) {
-    $options[$event->id] = $event->event_name;
-  }
-
-  return $options;
-}
-
 }
