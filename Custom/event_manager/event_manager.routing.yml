@@ -15,10 +15,10 @@ event_manager.event_register:
     _permission: 'access content'
 
 event_manager.settings:
-  path: '/admin/event-settings'
+  path: '/admin/config/event-manager/settings'
   defaults:
-    _form: '\Drupal\event_manager\Form\AdminSettingsForm'
-    _title: 'Event Settings'
+    _form: '\Drupal\event_manager\Form\EventManagerSettingsForm'
+    _title: 'Event Manager Settings'
   requirements:
     _permission: 'administer site configuration'
 

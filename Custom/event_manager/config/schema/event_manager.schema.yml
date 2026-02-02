@@ -1,0 +1,10 @@
+event_manager.settings:
+  type: config_object
+  label: 'Event Manager Settings'
+  mapping:
+    admin_email:
+      type: email
+      label: 'Admin notification email'
+    notify_admin:
+      type: boolean
+      label: 'Enable admin notification'
